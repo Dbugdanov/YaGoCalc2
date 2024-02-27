@@ -71,6 +71,8 @@ func (expr *Expression) ParseAST() {
 			if okLeft {
 				rightExpr, okRight := x.Y.(*ast.BasicLit)
 				if okRight {
+					//TODO
+					//Добавить логирование. Добавить функционал по отправке подвыражения в менеджер агентов
 					var val = constant.BinaryOp(constant.MakeFromLiteral(leftExpr.Value, leftExpr.Kind, 0), x.Op, constant.MakeFromLiteral(rightExpr.Value, rightExpr.Kind, 0))
 					fmt.Println("Visitor found an expression. Sending expression to agent. Visitor position: ", x.OpPos, "Agent calculated: ", val, " KIND: ", val.Kind())
 					c.Replace(&ast.BasicLit{
