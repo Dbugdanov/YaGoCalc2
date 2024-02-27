@@ -14,6 +14,7 @@ import (
 
 // NewExpression создаёт новое выражение, является функцией-конструктором для структуры Expression. Проверяет, допустимо
 // ли для приложения математическое выражение, если нет - отдаёт ошибку
+// TODO: принимать новое выражение от веб сервера
 func NewExpression(expr string) (*Expression, error) {
 	expression := &Expression{
 		RawExpression: expr,

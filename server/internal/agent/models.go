@@ -12,7 +12,3 @@ type Agent struct {
 	Id     int
 	Status status
 }
-
-func (a *Agent) Run() {
-
-}
