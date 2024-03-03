@@ -33,6 +33,41 @@ func NewExpression(expr string) (*Expression, error) {
 	return expression, nil
 }
 
+func newSubExpression(
+	left ast.BasicLit,
+	op token.Token,
+	right ast.BasicLit,
+) *SubExpression {
+	return &SubExpression{
+		Left:   left,
+		Op:     op,
+		Right:  right,
+		Result: make(chan TaskResult),
+	}
+}
+
+// sendSubExpression - отправляет подвыражение оркестратору с временем, которое выставлено у пользователя исходя из сессии
+func (subExpr *SubExpression) sendSubExpression(expressionChan chan<- SubExpression, resultChan chan constant.Value) constant.Value {
+	expressionChan <- *subExpr
+	fmt.Println(*subExpr, "sent to chan ", expressionChan)
+	var out constant.Value
+	for result := range resultChan {
+		fmt.Println("received result from orch")
+		out = result
+		break
+	}
+	fmt.Println(out)
+	return out
+}
+
+func NewTask(id int, expression SubExpression) *Task {
+	return &Task{
+		TaskID:     id,
+		SubExpr:    expression,
+		TaskStatus: NEEDTOCALC,
+	}
+}
+
 func (expr *Expression) isTokenAllowed(tok token.Token) bool {
 	for _, allowedToken := range tokenizer.AllowedTokens {
 		if allowedToken == tok {
@@ -62,7 +97,7 @@ func (expr *Expression) checkExpressionAllowed() error {
 	return nil
 }
 
-func (expr *Expression) ParseAST() {
+func (expr *Expression) ParseAST(expressionChan chan<- SubExpression, resultChan chan constant.Value) {
 	astutil.Apply(expr.ASTExpr, nil, func(c *astutil.Cursor) bool {
 		ast.Print(expr.Fset, expr.ASTExpr)
 		n := c.Node()
@@ -74,12 +109,15 @@ func (expr *Expression) ParseAST() {
 				if okRight {
 					//TODO
 					//Добавить логирование. Добавить функционал по отправке подвыражения в менеджер агентов
-					var val = constant.BinaryOp(constant.MakeFromLiteral(leftExpr.Value, leftExpr.Kind, 0), x.Op, constant.MakeFromLiteral(rightExpr.Value, rightExpr.Kind, 0))
-					fmt.Println("Visitor found an expression. Sending expression to agent. Visitor position: ", x.OpPos, "Agent calculated: ", val, " KIND: ", val.Kind())
+
+					// TODO: парсер отдаёт подвыражение оркестратору, ждёт когда вычислится выражение
+					result := newSubExpression(*leftExpr, x.Op, *rightExpr).sendSubExpression(expressionChan, resultChan)
+
+					fmt.Println("Visitor found an expression. Sending expression to agent. Visitor position: ", x.OpPos, "Agent calculated: ", result, " KIND: ", result.Kind())
 					c.Replace(&ast.BasicLit{
 						ValuePos: n.End(),
 						Kind:     token.FLOAT,
-						Value:    val.String(),
+						Value:    result.String(),
 					})
 				}
 			}

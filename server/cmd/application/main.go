@@ -6,13 +6,14 @@ import (
 )
 
 func main() {
-	expr, err := expression.NewExpression("1+2+3+4*5")
+	orch := orchestrator.NewOrchestrator()
+	orch.InitAgent(0)
+	go orch.ManageTasks()
+	go orch.SendResults()
+	expr, err := expression.NewExpression("3+3+3+3+3")
 	if err != nil {
 		panic(err)
 	}
-	expr.ParseAST()
-	orch := orchestrator.NewOrchestrator()
-	orch.RunAgentPool()
-	orch.ListAllAgents()
+	expr.ParseAST(orch.ExpressionChan, orch.ResultChan)
 
 }
